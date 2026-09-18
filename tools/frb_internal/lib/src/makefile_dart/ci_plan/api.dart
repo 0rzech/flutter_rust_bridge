@@ -30,6 +30,14 @@ class PlanCiCommand extends Command<void> {
             'Disable normal automatic CI jobs, used for PRs labeled $kCiManualDispatchLabel.',
       )
       ..addOption(
+        'security-audit-changed',
+        defaultsTo: 'true',
+        help:
+            'Inform security_audit job whether its watched files were actually changed. '
+            'If filter is empty or is set to * or full, will affect whether security_audit '
+            'runs or not.',
+      )
+      ..addOption(
         'github-output',
         help: 'Path to GitHub Actions GITHUB_OUTPUT.',
       );
@@ -41,6 +49,9 @@ class PlanCiCommand extends Command<void> {
       filter: argResults!['filter'] as String?,
       automaticCiDisabled:
           (argResults!['automatic-ci-disabled'] as String).toLowerCase() ==
+          'true',
+      securityAuditChanged:
+          (argResults!['security-audit-changed'] as String).toLowerCase() ==
           'true',
     );
     final githubOutputPath = argResults!['github-output'] as String?;
@@ -58,6 +69,7 @@ class PlanCiCommand extends Command<void> {
 CiPlan buildCiPlan({
   required String? filter,
   required bool automaticCiDisabled,
+  bool securityAuditChanged = true,
 }) {
   if (automaticCiDisabled) {
     return _emptyCiPlan();
@@ -67,7 +79,11 @@ CiPlan buildCiPlan({
   if (normalizedFilter.isEmpty ||
       normalizedFilter == 'full' ||
       normalizedFilter == '*') {
-    return _fullCiPlan();
+    if (securityAuditChanged) {
+      return _fullCiPlan();
+    }
+
+    return _fullCiPlan()..enabledJobs.remove('security_audit');
   }
 
   final specs = _parseFilter(normalizedFilter);
