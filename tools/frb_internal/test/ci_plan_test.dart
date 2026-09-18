@@ -54,6 +54,38 @@ void main() {
       }
     });
 
+    test('security audit follows its changed-files flag', () {
+      final doesContain = contains('security_audit');
+      final doesNotContain = isNot(doesContain);
+
+      for (final (filter, securityAuditChanged, shouldContain) in [
+        // should contain
+        ('', true, doesContain),
+        ('*', true, doesContain),
+        ('full', true, doesContain),
+        ('security_audit', true, doesContain),
+        ('security_audit', false, doesContain),
+        // should not contain
+        ('', false, doesNotContain),
+        ('*', false, doesNotContain),
+        ('full', false, doesNotContain),
+      ]) {
+        final plan = buildCiPlan(
+          filter: filter,
+          automaticCiDisabled: false,
+          securityAuditChanged: securityAuditChanged,
+        );
+
+        expect(
+          plan.enabledJobs,
+          shouldContain,
+          reason:
+              "Input: filter='$filter', "
+              'securityAuditChanged=$securityAuditChanged',
+        );
+      }
+    });
+
     test('single non-matrix job filter enables just that job', () {
       final plan = buildCiPlan(
         filter: 'lint_rust_primary',
