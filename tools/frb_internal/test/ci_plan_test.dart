@@ -54,34 +54,37 @@ void main() {
       }
     });
 
-    test('security audit follows its changed-files flag', () {
-      final doesContain = contains('security_audit');
-      final doesNotContain = isNot(doesContain);
+    test('security_audit is added to the plan'
+        ' depending on securityAuditChanged parameter', () {
+      const filters = ['', '*', 'full', 'security_audit'];
 
-      for (final (filter, securityAuditChanged, shouldContain) in [
-        // should contain
-        ('', true, doesContain),
-        ('*', true, doesContain),
-        ('full', true, doesContain),
-        ('security_audit', true, doesContain),
-        ('security_audit', false, doesContain),
-        // should not contain
-        ('', false, doesNotContain),
-        ('*', false, doesNotContain),
-        ('full', false, doesNotContain),
-      ]) {
-        final plan = buildCiPlan(
+      for (final filter in filters) {
+        // should be added
+
+        var plan = buildCiPlan(
           filter: filter,
           automaticCiDisabled: false,
-          securityAuditChanged: securityAuditChanged,
+          securityAuditChanged: true,
         );
 
         expect(
           plan.enabledJobs,
-          shouldContain,
-          reason:
-              "Input: filter='$filter', "
-              'securityAuditChanged=$securityAuditChanged',
+          contains('security_audit'),
+          reason: "Input: filter='$filter'",
+        );
+
+        // should NOT be added
+
+        plan = buildCiPlan(
+          filter: filter,
+          automaticCiDisabled: false,
+          securityAuditChanged: false,
+        );
+
+        expect(
+          plan.enabledJobs,
+          isNot(contains('security_audit')),
+          reason: "Input: filter='$filter'",
         );
       }
     });

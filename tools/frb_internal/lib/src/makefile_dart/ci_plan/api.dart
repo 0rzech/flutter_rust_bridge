@@ -33,9 +33,8 @@ class PlanCiCommand extends Command<void> {
         'security-audit-changed',
         defaultsTo: 'true',
         help:
-            'Inform security_audit job whether its watched files were actually changed. '
-            'If filter is empty or is set to * or full, will affect whether security_audit '
-            'runs or not.',
+            'Whether files watched by security_audit job were changed. '
+            'If true, security_audit will be added to the CI plan.',
       )
       ..addOption(
         'github-output',
@@ -79,16 +78,15 @@ CiPlan buildCiPlan({
   if (normalizedFilter.isEmpty ||
       normalizedFilter == 'full' ||
       normalizedFilter == '*') {
-    if (securityAuditChanged) {
-      return _fullCiPlan();
-    }
-
-    return _fullCiPlan()..enabledJobs.remove('security_audit');
+    return securityAuditChanged
+        ? _fullCiPlan()
+        : (_fullCiPlan()..enabledJobs.remove('security_audit'));
   }
 
   final specs = _parseFilter(normalizedFilter);
   final enabledJobs = <String>{};
   final matrixByJob = _emptyMatrixByJob();
+
   for (final spec in specs) {
     final job = _jobById[spec.jobId];
     if (job == null) {
@@ -119,6 +117,10 @@ CiPlan buildCiPlan({
         additions: entries,
       ),
     };
+  }
+
+  if (!securityAuditChanged) {
+    enabledJobs.remove('security_audit');
   }
 
   return CiPlan(enabledJobs: enabledJobs, matrixByJob: matrixByJob);
